@@ -133,14 +133,24 @@ int save(int argc, char *argv[])
     {
       std::cin >> input;
     }
+    if (input.length() != 64)
+    {
+      std::cerr << "OPAL key has invalid length, correct is 64." << std::endl;
+      return 1;
+    }
     std::vector<uint8_t> key;
     std::stringstream stream;
     for (int i = 0; i < 32; i++)
     {
       stream.clear();
-      stream << std::hex << input.substr(i * 2, 2);
+      stream << input.substr(i * 2, 2);
       int val;
-      stream >> val;
+      stream >> std::hex >> val;
+      if (!stream.eof())
+      {
+        std::cerr << "OPAL key contains non hexadecimal character." << std::endl;
+        return 1;
+      }
       key.push_back(val);
     }
     device.saveKey(key);
