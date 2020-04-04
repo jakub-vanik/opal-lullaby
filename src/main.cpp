@@ -37,6 +37,8 @@ int main(int argc, char *argv[])
     std::cout << "asks for OPAL password, derives a key and prints command to be executed to store the key into kernel." << std::endl;
     std::cout << argv[0] << " save <device> <key>" << std::endl;
     std::cout << "stores the key from command line into kernel." << std::endl;
+    std::cout << argv[0] << " save <device>" << std::endl;
+    std::cout << "stores the key from standard input into kernel." << std::endl;
     return 0;
   }
   if (argc < 2)
@@ -114,7 +116,7 @@ int hash(int argc, char *argv[])
 
 int save(int argc, char *argv[])
 {
-  if (argc != 4)
+  if (argc != 3 && argc != 4)
   {
     std::cerr << "Wrong argument count" << std::endl;
     return 1;
@@ -122,7 +124,15 @@ int save(int argc, char *argv[])
   try
   {
     Device device(argv[2]);
-    std::string input(argv[3]);
+    std::string input;
+    if (argc == 4)
+    {
+      input = argv[3];
+    }
+    else
+    {
+      std::cin >> input;
+    }
     std::vector<uint8_t> key;
     std::stringstream stream;
     for (int i = 0; i < 32; i++)
