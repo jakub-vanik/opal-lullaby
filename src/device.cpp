@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <fcntl.h>
 #include <linux/nvme_ioctl.h>
-#include <linux/sed-opal.h>
 #include <openssl/evp.h>
 #include <stdexcept>
 #include <string.h>
@@ -38,15 +37,21 @@ std::vector<uint8_t> Device::hashPassword(const std::string &password)
   return hash;
 }
 
+bool Device::testKey(const std::vector<uint8_t> &key)
+{
+  opal_lock_unlock opal_ioctl_data = {};
+  setupIoctlData(opal_ioctl_data, key);
+  if (ioctl(fd, IOC_OPAL_LOCK_UNLOCK, &opal_ioctl_data))
+  {
+    return false;
+  }
+  return true;
+}
+
 void Device::saveKey(const std::vector<uint8_t> &key)
 {
   opal_lock_unlock opal_ioctl_data = {};
-  opal_ioctl_data.l_state = OPAL_RW;
-  opal_ioctl_data.session.opal_key.lr = 0;
-  opal_ioctl_data.session.who = OPAL_ADMIN1;
-  size_t key_len = std::min(key.size(), sizeof(opal_ioctl_data.session.opal_key.key));
-  memcpy(opal_ioctl_data.session.opal_key.key, key.data(), key_len);
-  opal_ioctl_data.session.opal_key.key_len = key_len;
+  setupIoctlData(opal_ioctl_data, key);
   if (ioctl(fd, IOC_OPAL_SAVE, &opal_ioctl_data))
   {
     throw std::runtime_error("ioctl IOC_OPAL_SAVE failed");
@@ -69,4 +74,14 @@ std::vector<uint8_t> Device::getSerial()
   }
   std::vector<uint8_t> serial(ctrl + 4, ctrl + 24);
   return serial;
+}
+
+void Device::setupIoctlData(opal_lock_unlock &opal_ioctl_data, const std::vector<uint8_t> &key)
+{
+  opal_ioctl_data.l_state = OPAL_RW;
+  opal_ioctl_data.session.opal_key.lr = 0;
+  opal_ioctl_data.session.who = OPAL_ADMIN1;
+  size_t key_len = std::min(key.size(), sizeof(opal_ioctl_data.session.opal_key.key));
+  memcpy(opal_ioctl_data.session.opal_key.key, key.data(), key_len);
+  opal_ioctl_data.session.opal_key.key_len = key_len;
 }

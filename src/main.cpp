@@ -71,9 +71,17 @@ int test(int argc, char *argv[])
     Device device(argv[2]);
     char *pass = getpass("OPAL password: ");
     std::string password(pass, strnlen(pass, _SC_PASS_MAX));
-    device.saveKey(device.hashPassword(password));
-    std::cout << "OPAL key have been derived and saved to kernel." << std::endl;
-    std::cout << "Try to put the computer to S3 sleep and resume now." << std::endl;
+    auto key = device.hashPassword(password);
+    if (device.testKey(key))
+    {
+      device.saveKey(key);
+      std::cout << "OPAL key have been derived and saved to kernel." << std::endl;
+      std::cout << "Try to put the computer to S3 sleep and resume now." << std::endl;
+    }
+    else
+    {
+      std::cout << "OPAL password does not match." << std::endl;
+    }
     return 0;
   }
   catch (const std::exception &e)
@@ -153,8 +161,15 @@ int save(int argc, char *argv[])
       }
       key.push_back(val);
     }
-    device.saveKey(key);
-    std::cout << "OPAL key have been saved to kernel." << std::endl;
+    if (device.testKey(key))
+    {
+      device.saveKey(key);
+      std::cout << "OPAL key have been saved to kernel." << std::endl;
+    }
+    else
+    {
+      std::cout << "OPAL key does not match." << std::endl;
+    }
     return 0;
   }
   catch (const std::exception &e)
